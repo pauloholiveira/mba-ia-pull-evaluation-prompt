@@ -17,34 +17,123 @@
 
 ## Objetivo
 
-<!-- TODO: 2-3 frases explicando o desafio: pull de um prompt ruim do LangSmith, refatoração
-     com técnicas de Prompt Engineering, push da versão otimizada e avaliação por métricas
-     customizadas (Helpfulness, Correctness, F1-Score, Clarity, Precision), com meta >= 0.8
-     em todas as métricas. -->
+Este desafio consiste em pegar um prompt de baixa qualidade (`bug_to_user_story` v1) versionado no LangSmith e otimizá-lo aplicando técnicas de Prompt Engineering.
+
+O processo parte do pull da versão ruim, passa pela refatoração aplicando técnicas de prompt como Role Prompt, Chain of Thought e Few-shot Learning, e termina com o push da versão otimizada (v2) de volta ao LangSmith.
+
+Cada versão é avaliada automaticamente por métricas customizadas — Helpfulness, Correctness, F1-Score, Clarity e Precision — calculadas sobre um dataset de 15 exemplos de bugs.
+
+A meta é que todas as métricas atinjam nota >= 0.8, comprovando que as técnicas aplicadas melhoraram a qualidade das respostas geradas.
+
+O resultado final documenta essa evolução (v1 → v2) com dados comparativos, testes automatizados e evidências de execução no LangSmith.
 
 ## Técnicas Aplicadas (Fase 2)
 
 ### Técnica adicional Role Prompt: 
 
-- **Por quê:**
-- **Como foi aplicada:**
+- **Por quê:** Dar contexto e autoridade ao modelo, fazendo-o responder com o vocabulário e os critérios de um profissional da área.
+- **Como foi aplicada:** 
+Trocando a frase inicial do prompt por 
+```
+`Você é um Product Manager experiente e especialista em transformar relatos de bugs em user stories detalhadas`
+```
+E trocando o user_prompt por: 
+```
+Converta o relato abaixo em uma User Story completa:
 
+{bug_report}
+```
 ### Chain of Thought:
 
-- **Por quê:**
-- **Como foi aplicada:**
-
+- **Por quê:** Reduzir erros e omissões, incentivando o modelo a raciocinar sobre os detalhes do bug antes de escrever a user story final.
+- **Como foi aplicada:** Incluindo a instrução no system prompt
+``` 
+`Pense passo a passo em cada detalhe da user story que julgar necessário para gerar uma user story completa e detalhada.`
+``` 
 ### Few-shot Learning (obrigatório)
 
-- **Por quê:**
-- **Como foi aplicada:**
+- **Por quê:** Padronizar a estrutura da saída (user story, critérios de aceitação, contexto do bug), mostrando ao modelo o formato esperado.
+- **Como foi aplicada:** Inserindo dois exemplos completos de relato de bug → user story gerada no system prompt.
+```
+- Exemplo 1:
 
+      Relato de Bug:
+        Carrinho permite finalizar compra mesmo com produto fora de estoque.
+
+        Fluxo do bug:
+        1. Produto tem 2 unidades em estoque
+        2. Cliente A adiciona 2 unidades ao carrinho
+        3. Estoque fica zerado
+        4. Cliente B ainda consegue adicionar ao carrinho
+        5. Cliente B finaliza compra
+        6. Sistema gera pedido mas não tem estoque para enviar    
+
+      User stories gerada:    
+        Como o sistema de e-commerce, eu quero validar disponibilidade de estoque 
+        antes de permitir finalização de compra, para que não sejam criados pedidos que não podem ser atendidos.
+
+        Critérios de Aceitação:
+        - Dado que um produto está no carrinho
+        - Quando o cliente tenta finalizar a compra
+        - Então o sistema deve validar estoque disponível em tempo real
+        - E se o produto estiver fora de estoque, deve bloquear a compra
+        - E deve exibir mensagem clara sobre a indisponibilidade
+        - E deve sugerir remover o item ou aguardar reposição
+
+        Critérios de Prevenção:
+        - Quando produto ficar sem estoque
+        - E houver itens em carrinhos de outros clientes
+        - Então deve exibir aviso "estoque limitado" ao adicionar
+        - E deve reservar estoque temporariamente (15 minutos) ao ir para checkout
+
+        Contexto do Bug:
+        - Problema: validação de estoque não é feita no checkout
+        - Impacto: pedidos criados sem possibilidade de atendimento
+        - Cenário crítico: múltiplos clientes comprando último item
+    
+    --------------------------------
+
+    - Exemplo 2:
+    
+      Relato de Bug:
+        Modal de confirmação de exclusão aparece atrás do menu lateral em telas pequenas (< 768px).
+
+        Detalhes:
+        - z-index do modal: 1000
+        - z-index do menu lateral: 1050
+        - Usuários não conseguem clicar nos botões do modal
+        - Precisam fechar o menu lateral antes
+
+      User stories gerada:
+        Como um usuário em dispositivo móvel, eu quero que modais importantes apareçam acima de todos os outros elementos, para que eu possa interagir com eles sem precisar fechar outros componentes.
+
+        Critérios de Aceitação:
+        - Dado que estou em uma tela com largura menor que 768px
+        - Quando aciono uma ação que abre um modal de confirmação
+        - Então o modal deve aparecer acima de todos os elementos da página
+        - E o menu lateral deve ficar desfocado (backdrop)
+        - E todos os botões do modal devem ser clicáveis
+        - E o modal deve ocupar pelo menos 90% da largura da tela
+
+        Critérios de Acessibilidade:
+        - O foco do teclado deve ir para o modal
+        - Deve ser possível fechar com ESC
+        - O backdrop deve fechar ao clicar fora
+
+        Contexto Técnico:
+        - Bug atual: z-index modal (1000) < z-index menu (1050)
+        - Solução: ajustar z-index do modal para > 1050
+        - Devices afetados: mobile e tablets (< 768px)
+
+        --------------------------------  
+  ```
 
 ## Resultados Finais
 
 ### Link do dashboard LangSmith
-Prompt: https://smith.langchain.com/hub/pauloholiveira/bug_to_user_story_v2
-Traces: https://smith.langchain.com/o/974a5734-4fb0-41ea-aef0-d063090ac60d/projects/p/bbc1c2d1-f9f1-4210-b2c3-e6320c71378e?timeModel=%7B%22duration%22%3A%221d%22%7D&runview=traces
+
+- **Prompt:** https://smith.langchain.com/hub/pauloholiveira/bug_to_user_story_v2
+- **Traces:** https://smith.langchain.com/o/974a5734-4fb0-41ea-aef0-d063090ac60d/projects/p/bbc1c2d1-f9f1-4210-b2c3-e6320c71378e?timeModel=%7B%22duration%22%3A%221d%22%7D&runview=traces
 
 ### Comparativo v1 vs v2
 
@@ -108,6 +197,7 @@ Copie `.env.example` para `.env` e preencha as credenciais:
 cp .env.example .env
 ```
 
+```env
 # LangSmith Configuration
 LANGSMITH_TRACING=true
 LANGSMITH_ENDPOINT=https://api.smith.langchain.com
@@ -116,6 +206,7 @@ USERNAME_LANGSMITH_HUB=pauloholiveira
 LLM_PROVIDER=openai
 LLM_MODEL=gpt-4o-mini
 EVAL_MODEL=gpt-4o-mini
+```
 
 ### 3. Pull do prompt inicial (v1)
 
@@ -172,20 +263,19 @@ mba-ia-pull-evaluation-prompt/
 **Testes Implementados**
 
 - `test_prompt_has_system_prompt`: Verifica se o campo existe e não está vazio.
-- `test_prompt_has_role_definition`: Verifica se o prompt define uma persona pesquisando por várias possibilidades de definição de Persona
-     Por exemplo: 
-     - "você é",
-     - "voce é",
-     - "você atua como",
-     - "atue como",
-     - "atuando como",
-     - "seu papel é",
-     - "sua função é",
-     - "assuma o papel de",
-     - "you are a",
-     - "you are an",
-     - "act as",
-     - "your role is",
+- `test_prompt_has_role_definition`: Verifica se o prompt define uma persona, pesquisando por várias possibilidades de definição de persona. Por exemplo:
+  - "você é"
+  - "voce é"
+  - "você atua como"
+  - "atue como"
+  - "atuando como"
+  - "seu papel é"
+  - "sua função é"
+  - "assuma o papel de"
+  - "you are a"
+  - "you are an"
+  - "act as"
+  - "your role is"
 - `test_prompt_mentions_format`: Verifica se o prompt exige formato Markdown ou User Story padrão.
 - `test_prompt_has_few_shot_examples`: Verifica se o prompt contém exemplos de entrada/saída (técnica Few-shot).
 - `test_prompt_no_todos`: Garante que você não esqueceu nenhum `[TODO]` no texto.
